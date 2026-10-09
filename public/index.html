@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#040E11" />
+<title>Scrum → Kanban — интерактивный кейс</title>
+<style>
+:root{
+  --bg:#f5f6f6; --surface:#fff; --ink:#040E11; --muted:#5f6b70; --line:#d9dfe1;
+  --red:#C33843; --red-dark:#9f2e37; --red-soft:#f7e9eb; --dark:#040E11;
+  --shadow:0 10px 30px rgba(4,14,17,.08); --r:18px; --rs:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--dark);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:20;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+.topbar{max-width:1440px;margin:auto;display:flex;gap:14px;align-items:center;justify-content:space-between}
+.brand{font-weight:850;display:flex;align-items:center;gap:10px}.brand-dot{width:11px;height:11px;border-radius:50%;background:var(--red);box-shadow:0 0 0 5px rgba(195,56,67,.16)}
+.topmeta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{padding:7px 10px;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.06);font-size:12px}
+main{width:100%;max-width:1440px;margin:0 auto;padding:20px}
+.screen{display:none}.screen.active{display:block}
+.hero{background:linear-gradient(135deg,#fff,#f7e9eb 140%);border:1px solid #ead2d5;box-shadow:var(--shadow);border-radius:24px;padding:24px}
+h1{font-size:clamp(28px,4vw,44px);line-height:1.03;margin:0 0 12px}
+h2{font-size:clamp(21px,3vw,29px);margin:0 0 10px}
+h3{margin:0 0 8px;font-size:17px} p{line-height:1.55}.muted{color:var(--muted)}
+.grid{display:grid;gap:16px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.participant-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(145px,.55fr);gap:12px;align-items:end}.participant-field{display:grid;gap:6px;min-width:0}.participant-field input,.participant-field select{width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 3px 16px rgba(16,24,40,.04)}
+.section{margin-top:18px}.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:11px 15px;font-weight:750;background:var(--red);color:#fff;min-height:44px;transition:.15s}
+.btn:hover{background:var(--red-dark);transform:translateY(-1px)}.btn.secondary{background:#eef1f2;color:var(--ink);border:1px solid #d5dcde}.btn.secondary:hover{background:#e5e9ea}
+.btn.dark{background:var(--dark)}.btn.green{background:#8f2932}.btn.amber{background:var(--red)}.btn.red{background:var(--red)}
+input,select{border:2px solid var(--line);border-radius:12px;padding:12px 13px;background:#fff;color:var(--ink);min-height:44px;outline:none}
+input:focus,select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(195,56,67,.12)}
+.choice-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.choice{border:2px solid var(--line);border-radius:16px;padding:18px;background:#fff;text-align:center;transition:.15s;min-height:105px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px}
+.choice:hover{border-color:#d98c94}.choice.selected{border-color:var(--red);background:var(--red-soft)}.choice strong{font-size:27px}
+.metric{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.metric:last-child{border-bottom:0}
+.metric strong{font-size:20px}
+.phasebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.phase{padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px}.phase.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.task-table{width:100%;border:1px solid var(--line);border-radius:14px;overflow:auto}.task-table table{width:100%;border-collapse:separate;border-spacing:0;min-width:720px}
+.task-table th,.task-table td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.task-table th{background:#f8f9f9;font-size:12px;color:#4e5b60}
+.task-table tr:last-child td{border-bottom:0}
+.task-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 3px 12px rgba(16,24,40,.05);user-select:none}
+.task-card.dragging{opacity:.5}.task-card .title{font-weight:800;font-size:14px}.task-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tag{display:inline-flex;padding:4px 7px;border-radius:999px;background:#f0f2f2;color:#4e5b60;font-size:11px}.tag.red{background:#fbedee;color:#9f2e37}.tag.dark{background:#edf0f1;color:#040E11}
+.dropzone{min-height:220px;display:grid;gap:8px;align-content:start}.board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;align-items:start}
+.column{background:#edf0f1;border:1px solid #d4dbdd;border-radius:16px;padding:10px;min-height:300px}
+.column.drop-active{outline:3px dashed #d98c94;outline-offset:-4px}.column-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}
+.column-title{font-weight:850;font-size:14px}.wip{font-size:11px;padding:4px 7px;border-radius:999px;background:#fff;border:1px solid #d8dfe1}.wip.over{color:#a82f39;border-color:#e8b7bc;background:#fbedee;font-weight:850}
+.progress{height:9px;border-radius:999px;background:#e2e6e7;overflow:hidden}.progress>span{display:block;height:100%;background:linear-gradient(90deg,#C33843,#8f2932);border-radius:inherit}
+.timer{font-variant-numeric:tabular-nums;font-size:28px;font-weight:900;letter-spacing:.5px}.sticky-panel{position:sticky;top:76px}
+.alert{border:1px solid #e8b7bc;background:#fbedee;color:#8f2932;border-radius:14px;padding:12px 14px}.info{border:1px solid #ead2d5;background:#f7e9eb;color:#7c2932;border-radius:14px;padding:12px 14px}.success{border:1px solid #e3b8bd;background:#f6e9eb;color:#7c2932;border-radius:14px;padding:12px 14px}.warn{border:1px solid #e8b7bc;background:#fbeced;color:#8f2932;border-radius:14px;padding:12px 14px}
+.role-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.role-note{background:#faf6f7;border:1px solid #e9d5d8;color:#7a2a32;border-radius:12px;padding:9px 11px}
+.role-note h4{font-size:15px;margin:0 0 5px}.role-note p{font-size:12px;line-height:1.4;margin:4px 0}
+.team-tabs{display:flex;gap:8px;flex-wrap:wrap}.team-tab{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:750}.team-tab.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.facilitator{background:var(--dark);color:#fff;border-radius:18px;padding:18px}.facilitator .muted{color:#cbd5e1}.facilitator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+details{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}summary{cursor:pointer;font-weight:800}
+.small{font-size:13px}.center{text-align:center}.score-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.score-box{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.score-box strong{display:block;font-size:24px;margin-top:4px}
+.coach-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.session-row{display:grid;grid-template-columns:1.4fr .7fr .8fr .9fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#94a3b8;margin-right:6px}.status-dot.active{background:var(--red)}.status-dot.done{background:#8f2932}
+.chip{padding:6px 8px;border-radius:999px;background:#f0f2f2;font-size:11px}
+.kbd{font-family:ui-monospace,monospace;background:#f0f2f2;border:1px solid #d5dcde;padding:2px 6px;border-radius:6px}
+.hidden{display:none!important}footer{padding:28px 20px;color:#7b8796;text-align:center;font-size:12px}
+@media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.sticky-panel{position:static}.coach-grid{grid-template-columns:1fr}}
+@media(max-width:820px){.role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr}.choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.session-row{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.role-grid{grid-template-columns:1fr}main{padding:12px}.topbar{align-items:flex-start;flex-direction:column}.grid-4,.grid-3,.grid-2,.participant-fields{grid-template-columns:1fr}.choice-grid{grid-template-columns:1fr 1fr}.board{grid-template-columns:1fr}.hero{padding:18px}.card{padding:14px}.session-row{grid-template-columns:1fr}.task-table table{min-width:720px}}
+
+/* Participant instruction panels */
+.instruction-box{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+}
+.instruction-box h3{margin:0 0 8px}
+.instruction-box ol,.instruction-box ul{margin:8px 0 0;padding-left:22px;line-height:1.65}
+.instruction-box li{margin:3px 0}
+.instruction-box .step-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:26px;height:26px;padding:0 8px;border-radius:999px;
+  background:var(--red);color:#fff;font-size:12px;font-weight:800;margin-right:6px
+}
+.instruction-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+.instruction-note{
+  border-left:4px solid var(--red);
+  padding:10px 12px;background:var(--red-soft);border-radius:10px;color:#7c2932
+}
+@media(max-width:820px){.instruction-grid{grid-template-columns:1fr}}
+
+
+.resource-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+.resource-table{width:100%;min-width:780px;border-collapse:separate;border-spacing:0}
+.resource-table th,.resource-table td{padding:9px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:center}
+.resource-table th:first-child,.resource-table td:first-child{text-align:left;min-width:230px}
+.resource-table th{font-size:11px;background:#f8f9f9;color:#4e5b60}
+.hours-input{width:72px;min-height:36px;padding:7px 8px;text-align:center;border-radius:9px;border:1px solid var(--line)}
+.capacity-ok{color:#7c2932;font-weight:800}.capacity-over{color:#C33843;font-weight:900}
+.dep-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dep-list{display:grid;gap:8px;margin-top:10px}
+.dep-item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#C33843;display:inline-block;margin-right:6px}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="topbar">
+    <div class="brand"><span class="brand-dot"></span><span>Scrum → Kanban: сквозной кейс</span></div>
+    <div class="topmeta">
+      <span class="pill" id="sessionPill">Сессия: —</span>
+      <span class="pill" id="teamPill">Команда: —</span>
+      <span class="pill" id="phasePill">Фаза: Вход</span>
+      <span class="pill" id="savePill">● не подключено</span>
+    </div>
+  </div>
+</header>
+
+<main>
+<div id="sessionStatusBanner" class="hidden" style="margin-bottom:14px"></div>
+<!-- HOME -->
+<section id="screen-home" class="screen active">
+  <div class="hero">
+    <div class="phasebar"><span class="phase active">Вход</span><span class="phase">Scrum</span><span class="phase">Kanban</span><span class="phase">Дебриф</span></div>
+    <h1>Проект есть.<br>Работа уже идёт.</h1>
+    <p class="muted" style="max-width:900px;font-size:17px">
+      Интерактивная командная симуляция. Одна ссылка используется многократно: для каждой группы ведущий создаёт отдельную сессию,
+      а участники входят по коду сессии и номеру команды.
+    </p>
+  </div>
+
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2>Участник</h2>
+      <p class="muted">Введите любой код, который отличает это занятие от других, и номер вашей команды.</p>
+      <div class="participant-fields">
+        <div class="participant-field">
+          <label class="small muted">Код сессии</label>
+          <input id="participantSession" placeholder="например, A2 / Группа-2 / 3009" autocomplete="off" autocapitalize="characters">
+        </div>
+        <div class="participant-field">
+          <label class="small muted">Номер команды</label>
+          <select id="participantTeam">
+            <option value="" selected disabled>Выберите команду</option>
+            <option value="1">Команда 1</option><option value="2">Команда 2</option>
+            <option value="3">Команда 3</option><option value="4">Команда 4</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:12px"><button class="btn" id="participantEnterBtn">Войти в кейс</button></div>
+      <div id="participantFeedback" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ведущий</h2>
+      <p class="muted">Создавайте отдельные сессии на каждый день/группу и наблюдайте результаты команд.</p>
+      <div class="grid">
+        <input id="coachPassword" type="password" placeholder="Пароль ведущего">
+        <button class="btn dark" id="coachEnterBtn">Открыть кабинет ведущего</button>
+      </div>
+      <div id="coachFeedback" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+
+  <div class="section instruction-box">
+    <h2>Принцип упражнений</h2>
+    <div>
+        <ol>
+          <li><b>Один общий кейс.</b> Все участники работают над одной бизнес-задачей и видят общий контекст.</li>
+          <li><b>Все видят пять ролей.</b> Команда использует описания и мощности ролей для общего решения.</li>
+          <li><b>Решение принимает команда.</b> Интерфейс фиксирует действия, но не подсказывает единственно верный ответ.</li>
+          <li><b>Каждый следующий этап добавляет новую информацию.</b> Команда пересматривает решение, когда меняются условия работы.</li>
+        </ol>
+        <p class="small muted" style="margin-bottom:0"><b>Главное:</b> сначала договоритесь о решении вместе, затем фиксируйте его в интерфейсе.</p>
+    </div>
+  </div>
+
+  <div class="section grid grid-3">
+    <div class="card"><h3>Отдельная сессия</h3><p class="small muted">Каждый день и каждая группа получают собственный код и собственные результаты.</p></div>
+    <div class="card"><h3>1–4 команды</h3><p class="small muted">Любой код создаёт отдельную сессию. Например: A2, 30.09, Группа-Б. Команды с одинаковыми номерами в разных сессиях не перезаписывают друг друга.</p></div>
+    <div class="card"><h3>Продолжение с любого устройства</h3><p class="small muted">Состояние сохраняется после ключевых действий и восстанавливается по коду сессии + номеру команды.</p></div>
+  </div>
+</section>
+
+<!-- COACH -->
+<section id="screen-coach" class="screen">
+  <div class="phasebar">
+    <span class="phase active">Кабинет ведущего</span>
+    <button class="btn secondary" id="coachHomeBtn" style="margin-left:auto;min-height:36px;padding:7px 10px">← На главный экран</button>
+  </div>
+  <div class="coach-grid">
+    <div class="card">
+      <h2>Создать новую сессию</h2>
+      <p class="muted small">Создавайте новую сессию на каждый день, поток или группу.</p>
+      <div class="grid grid-2">
+        <div><label class="small muted">Название группы / занятия</label><input id="newSessionName" placeholder="Lean — группа 2"></div>
+        <div><label class="small muted">Количество команд</label>
+          <select id="newSessionTeams"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select>
+        </div>
+      </div>
+      <button class="btn" id="createSessionBtn" style="margin-top:12px">Создать сессию</button>
+      <div id="createSessionFeedback" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Как работает</h2>
+      <div class="metric"><span>1. Создаёте сессию</span><strong>код</strong></div>
+      <div class="metric"><span>2. Раздаёте код</span><strong>участникам</strong></div>
+      <div class="metric"><span>3. Команды входят</span><strong>1–4</strong></div>
+      <div class="metric"><span>4. Наблюдаете</span><strong>онлайн</strong></div>
+      <div class="info small" style="margin-top:12px">Результаты разных дней не смешиваются: они хранятся внутри своей сессии.</div>
+      <button class="btn secondary" id="healthCheckBtn" style="margin-top:12px;width:100%">Проверить подключение базы данных</button>
+      <div id="coachHealthFeedback" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="section card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap">
+      <div><h2>Сессии</h2><p class="muted small">Автоматически обновляемый список прошлых и текущих занятий.</p></div>
+      <button class="btn secondary" id="refreshSessionsBtn">Обновить</button>
+    </div>
+    <div id="sessionsList" style="margin-top:12px"></div>
+  </div>
+
+  <div class="section card hidden" id="coachSessionDetailCard">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap">
+      <div><h2 id="coachDetailTitle">Сессия</h2><p class="muted small" id="coachDetailMeta"></p></div>
+      <div class="btnrow"><button class="btn secondary" id="refreshDetailBtn">Обновить</button><button class="btn dark" id="copySessionCodeBtn">Скопировать код</button><button class="btn dark" id="endSessionDetailBtn" style="background:#C33843">Закончить сессию</button><button class="btn secondary" id="deleteSessionDetailBtn" style="border-color:#C33843;color:#C33843">Удалить сессию</button></div>
+    </div>
+    <div id="coachDetailTeams" style="margin-top:12px"></div>
+  </div>
+</section>
+
+
+<!-- EXERCISE 1: SHARED TASK BACKLOG -->
+<section id="screen-ex1" class="screen">
+  <div class="phasebar">
+    <span class="phase active">Упражнение 1 · 10 мин</span>
+    <span class="phase">Scrum</span>
+    <span class="phase">Kanban</span>
+    <span class="phase">Дебриф</span>
+  </div>
+
+  <div class="hero">
+    <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h1>Кейс: сократите время обеспечения ремонтной бригады</h1>
+        <p class="muted" style="max-width:900px">
+          Вы — проектная команда крупного НПЗ. Сейчас путь заявки на СИЗ и ТМЦ от потребности до готовности занимает в среднем
+          <b>18 часов</b>. Цель проекта на 4 недели — сократить его до <b>10 часов</b> без увеличения штата.
+          Сейчас вам нужно сформировать общий backlog месяца.
+        </p>
+      </div>
+      <div class="pill" style="background:#C33843;color:#fff;border-color:#C33843">● LIVE</div>
+    </div>
+    <div class="info">
+      <b>На этом этапе:</b> выберите из предложенного списка те работы, которые вы считаете относящимися к месяцу проекта.
+      На этом этапе не расставляйте приоритеты и не стройте план спринта.
+    </div>
+  </div>
+
+  <div class="section card">
+    <h2>Роли и ресурсы команды</h2>
+    <p class="muted small">Все участники видят описания ролей и их доступную мощность на первые две недели.</p>
+    <div id="exercise1MyRole"></div>
+  </div>
+
+
+  <div class="section instruction-box">
+    <h2>Как проходит кейс</h2>
+    <div class="instruction-grid">
+      <div>
+        <ol>
+          <li><span class="step-chip">1</span><b>Backlog месяца.</b> Выберите из общего банка задач те работы, которые должны войти в проект.</li>
+          <li><span class="step-chip">2</span><b>Scrum Planning.</b> Из вашего backlog выберите работу на первые 2 недели, расставьте приоритет и распределите человеко-часы между участниками.</li>
+          <li><span class="step-chip">3</span><b>Kanban.</b> После планирования вы увидите, что часть работ уже фактически выполняется. Ограничение потока заставит пересмотреть первоначальный план.</li>
+          <li><span class="step-chip">4</span><b>Защита и дебриф.</b> Объясните, что и почему вы изменили после появления реального состояния работы.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="instruction-note"><b>Работайте как команда.</b><br>
+        Обсуждайте информацию из своих ролей, задавайте друг другу вопросы и договаривайтесь о совместном решении.
+        Используйте информацию всех ролей и договаривайтесь о совместном решении.</div>
+        <p class="small muted" style="margin-bottom:0"><b>Важно:</b> интерфейс фиксирует решения команды. Не нужно «правильно кликать» — нужно обосновывать принятые решения.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section grid grid-2">
+    <div class="card">
+
+      <div class="instruction-box" style="margin-bottom:14px">
+        <h3>Задание: сформируйте общий backlog</h3>
+        <ol>
+          <li>Изучите весь предложенный банк задач.</li>
+          <li>Обсудите вместе цель проекта и ограничения ролей.</li>
+          <li>Выберите только те задачи, которые, по вашему мнению, относятся к работе проекта в течение ближайшего месяца.</li>
+          <li>В итоговом списке должно быть <b>от 5 до 10 задач</b>.</li>
+          <li><b>Не расставляйте приоритеты и не стройте план спринта</b> на этом шаге.</li>
+          <li>У каждой задачи есть трудоёмкость. Порядок выполнения команда определяет самостоятельно.</li>
+          <li>После фиксации backlog этот список станет единственным входом в Scrum Planning.</li>
+        </ol>
+      </div>
+      <h2>Банк задач</h2>
+      <p class="muted small">Выбирайте задачи только из предложенного списка — создать свою задачу нельзя.</p>
+      <div id="exercise1Bank" class="grid"></div>
+    </div>
+
+    <div class="card sticky-panel">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div>
+          <h2>Общий список команды</h2>
+          <div id="exercise1Meta" class="small muted">Загружаем…</div>
+        </div>
+        <div id="exercise1Sync" style="display:none" class="chip">обновление…</div>
+      </div>
+
+      <div id="exercise1SharedList" class="dropzone" style="min-height:360px;margin-top:12px"></div>
+
+      <div id="exercise1LockBox" class="section">
+        <div class="warn small">
+          <b>Проверьте список перед фиксацией.</b>
+          После передачи в Scrum новые задачи добавлять нельзя.
+        </div>
+        <button class="btn" id="lockExercise1Btn" style="margin-top:10px">
+          Передать задачи в Scrum
+        </button>
+      </div>
+
+      <div id="exercise1LockedBox" class="section hidden">
+        <div class="success">
+          <b>Список зафиксирован.</b><br>
+          Теперь все участники команды перейдут к Scrum Planning с этим же набором задач.
+        </div>
+        <button class="btn" id="goScrumBtn" style="margin-top:10px">Перейти к Scrum</button>
+      </div>
+
+      <div id="exercise1Feedback" style="margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCRUM -->
+<section id="screen-scrum" class="screen">
+  <div class="phasebar">
+    <span class="phase">Вход</span>
+    <span class="phase active">Scrum · 12 мин</span>
+    <span class="phase">Kanban</span>
+    <span class="phase">Дебриф</span>
+  </div>
+
+  <div class="hero">
+    <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h1>Scrum Planning: спланируйте первые 2 недели</h1>
+        <p class="muted" style="max-width:920px">
+          Теперь работаете только с тем backlog, который команда собрала на предыдущем этапе.
+          У проекта 4 недели, но сейчас вы планируете только первые 10 рабочих дней.
+        </p>
+      </div>
+      <div class="timer" id="scrumTimer">12:00</div>
+    </div>
+    <div class="instruction-note" style="margin-top:12px">
+      <b>Ключевой нюанс:</b> задача измеряется в <b>человеко-часах</b>.
+      Одну задачу могут одновременно или последовательно выполнять несколько участников.
+      У команды есть пять ресурсных лимитов на первые 2 недели — по одному для каждой роли.
+      Порядок выполнения и способ взаимодействия команда определяет самостоятельно.
+    </div>
+  </div>
+
+  <div class="section grid grid-3">
+    <div class="card">
+      <span class="muted small">Цель проекта</span>
+      <div style="font-size:24px;font-weight:900">18 → 10 ч</div>
+      <span class="small muted">срок проекта: 4 недели</span>
+    </div>
+    <div class="card">
+      <span class="muted small">Спринт</span>
+      <div style="font-size:24px;font-weight:900">10 рабочих дней</div>
+      <span class="small muted">нужен измеримый результат</span>
+    </div>
+    <div class="card">
+      <span class="muted small">Общая доступность команды</span>
+      <div style="font-size:24px;font-weight:900">120 ч</div>
+      <span class="small muted">суммарная мощность пяти ролей</span>
+    </div>
+  </div>
+
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2>Роли и ресурсы команды</h2>
+      <p class="muted small">Планируйте часы по пяти ресурсам команды; любой участник может работать с любой ролью.</p>
+      <div id="myRoleCard"></div>
+      <div class="section">
+        <h3>Ресурс команды</h3>
+        <div id="teamCapacitySummary"></div>
+      </div>
+    </div>
+
+    <div class="card sticky-panel">
+      <h2>Sprint Backlog</h2>
+      <p class="muted small">Выбирайте задачи из backlog и расставляйте их строго по приоритету.</p>
+      <div class="chip" id="scrumSyncChip"><span class="live-dot"></span> live-план команды</div>
+      <div id="selectedTasks" class="dropzone" style="min-height:250px;margin-top:10px;border:2px dashed #bcc5c7;border-radius:14px;padding:10px;background:#f8f9f9"></div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn secondary" id="clearSprintBtn">Очистить</button>
+        <button class="btn" id="lockSprintBtn">Зафиксировать план спринта</button>
+      </div>
+      <div id="scrumFeedback" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="section card">
+    <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap">
+      <div>
+        <h2>Backlog месяца</h2>
+        <p class="muted small">Это именно тот список, который команда сформировала в Упражнении 1. Здесь можно выбрать задачи для первого спринта.</p>
+      </div>
+    </div>
+    <div class="task-table" style="margin-top:12px">
+      <table>
+        <thead><tr><th>№</th><th>Задача</th><th>Трудоёмкость</th><th>Ориентир</th><th>Результат</th><th></th></tr></thead>
+        <tbody id="backlogBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section card">
+    <h2>Распределение времени</h2>
+    <p class="muted small">Распределите трудоёмкость выбранных задач по пяти ролям/ресурсам команды. Любой участник может работать с любой ролью. Для фиксации спринта сумма по каждой задаче должна совпадать с её трудоёмкостью.</p>
+    <div id="resourceAllocationPanel"></div>
+  </div>
+</section>
+
+<!-- KANBAN -->
+<section id="screen-kanban" class="screen">
+  <div class="phasebar"><span class="phase">Вход</span><span class="phase">Scrum</span><span class="phase active">Kanban · 8 мин</span><span class="phase">Дебриф</span></div>
+  <div class="hero"><h2>Стоп. А теперь посмотрим, что реально происходит.</h2><p class="muted">При планировании команда видела будущую работу. Теперь открывается фактический поток незавершённой работы.</p></div>
+  <div class="section instruction-box">
+    <h2>Инструкция: Kanban</h2>
+    <div class="instruction-grid">
+      <div>
+        <ol>
+          <li>Задачи, которые вы выбрали в Scrum, теперь лежат в <b>бэклоге</b> — они ещё не стали начатой работой.</li>
+          <li>Посмотрите, что уже находится <b>в работе</b>. Лимит — максимум <b>2 задачи</b>.</li>
+          <li>В колонке «Надо сделать» — максимум <b>3 задачи</b>.</li>
+          <li>Команда решает, что продолжить, что остановить и что вернуть в бэклог.</li>
+          <li>При появлении срочной работы нельзя просто увеличить WIP — сначала освободите место в потоке.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="instruction-note"><b>Главный вопрос:</b><br>«Что мы должны перестать делать, чтобы закончить действительно важное?»</div>
+        <p class="small muted" style="margin-bottom:0"><b>Важно:</b> уже вложенные часы учитываются как реальность потока, но не определяют решение автоматически.</p>
+      </div>
+    </div>
+  </div>
+  <div class="section grid grid-3">
+    <div class="card"><span class="muted small">WIP «В работе»</span><div style="font-size:32px;font-weight:900" id="wipCurrent">3</div><span class="small">лимит 2</span></div>
+    <div class="card"><span class="muted small">WIP «Надо сделать»</span><div style="font-size:32px;font-weight:900" id="todoCurrent">0</div><span class="small">лимит 3</span></div>
+    <div class="card"><span class="muted small">Уже вложено в незавершёнку</span><div style="font-size:32px;font-weight:900" id="spentHours">35 ч</div><span class="small">этого не было видно в чистом бэклоге</span></div>
+  </div>
+  <div class="section card">
+    <div class="btnrow" style="justify-content:space-between">
+      <div><h2>Фактическая доска проекта</h2><p class="muted small">Drag-and-drop на компьютере или кнопки внутри карточек на телефоне.</p></div>
+      <button class="btn" id="newUrgentBtn">Появилась срочная работа</button>
+    </div>
+    <div id="kanbanBoard" class="board" style="margin-top:14px"></div>
+    <div id="kanbanAlert" style="margin-top:12px"></div>
+  </div>
+  <div class="section grid grid-2">
+    <div class="card"><h2>Контроль решений</h2><div class="checklist">
+      <label class="check" style="display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px"><input type="checkbox" data-k="1"> В работе не более 2 задач.</label>
+      <label class="check" style="display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px"><input type="checkbox" data-k="2"> Остановленные задачи имеют объяснимую причину.</label>
+      <label class="check" style="display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px"><input type="checkbox" data-k="3"> «Надо сделать» не превышает 3 задачи.</label>
+      <label class="check" style="display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px"><input type="checkbox" data-k="4"> Мы объяснили изменение относительно Scrum.</label>
+      <label class="check" style="display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px"><input type="checkbox" data-k="5"> Срочная работа не увеличила WIP.</label>
+    </div></div>
+  </div>
+  <div class="section center"><button class="btn" id="goDebriefBtn">Перейти к защите и дебрифу</button></div>
+</section>
+
+<!-- DEBRIEF -->
+<section id="screen-debrief" class="screen">
+  <div class="phasebar"><span class="phase">Вход</span><span class="phase">Scrum</span><span class="phase">Kanban</span><span class="phase active">Дебриф · 5 мин</span></div>
+  <div class="section card">
+    <h1>Результат команды</h1>
+    <h2>Задачи команды</h2>
+    <div class="grid grid-2"><div><h3>Выбрано на Scrum</h3><ul id="finalScrumTasks" class="small"></ul></div><div><h3>Kanban: состояние задач</h3><div id="finalKanbanTasks" class="small"></div></div></div>
+    <h2>Подготовка к защите результата</h2><p class="muted">Опирайтесь на решения команды и состояние доски.</p><ol class="small"><li><b>Цель:</b> какой результат нужен бизнесу?</li><li><b>Выбор:</b> какие задачи взяты и почему они важнее остальных?</li><li><b>Компромисс:</b> что оставили за рамками и чем рискует выбор?</li><li><b>Поток:</b> где сейчас задачи, соблюдён ли WIP и что мешает завершению?</li><li><b>Следующий шаг:</b> что команда сделает дальше и по какому показателю оценит результат?</li></ol><div class="note"><b>Структура выступления:</b> «Мы выбрали … ради …; не взяли …, потому что …; сейчас в работе … задач, узкое место — …; следующий шаг …; результат проверим по …».</div>
+    <p class="muted" id="finalTeamMeta"></p>
+    <div class="score-grid">
+      <div class="score-box"><span class="muted small">Scrum</span><strong id="finalScrumHours">0 ч</strong></div>
+      <div class="score-box"><span class="muted small">WIP</span><strong id="finalWip">0 / 2</strong></div>
+      <div class="score-box"><span class="muted small">Готово</span><strong id="finalCompletion">—</strong></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Многосессионный веб-кейс: одна ссылка, отдельные группы, отдельные результаты.</footer>
+
+<script>
+(() => {
+  const VARIANTS = [
+    {name:'A', taskTweaks:{3:0,5:0,6:0,9:0}, hidden:['Руководство скептически относится к длинной аналитике без практического результата.','В предварительной выборке 27% заявок ждут согласования; данные пока неполные.','Участок готов к пилоту, но только один раз. Через 2 недели начинается пик.','Разработчик свободен сейчас. Следующее окно — на 3-й неделе.','Через 10 рабочих дней директор ждёт причины + решение + первые подтверждения.']},
+    {name:'B', taskTweaks:{3:2,5:-2,6:2,9:-2}, hidden:['Есть риск потратить спринт на артефакты, не проверив решение на месте.','По данным 100 заявок больше всего времени теряется на комплектовании и поиске.','Пилотный участок готов, но в ближайшие дни будет высокая загрузка.','Разработчик доступен только 3 рабочих дня.','Директор просил показать хотя бы один измеримый KPI к концу 2-й недели.']},
+    {name:'C', taskTweaks:{3:-2,5:2,6:-2,9:2}, hidden:['Главное опасение — одновременно начать слишком много и не закончить ничего.','В истории заявок много возвратов из-за неполных данных.','Производство ожидает понятный черновик стандарта комплектации.','Автоматизацию нужно делать после фиксации требований.','Отдельный плюс — показать решение, которое можно масштабировать.']},
+    {name:'D', taskTweaks:{3:0,5:4,6:-2,9:0}, hidden:['Не перепутайте активность с результатом.','Две причины дают почти половину общего времени ожидания.','Пилот возможен только после процесса и проверки ОТ.','Прототип формы можно сделать быстро, но потребуется ещё несколько итераций.','Поддержка следующего этапа будет только при фактическом результате.']}
+  ];
+  const ROLES=[
+    {title:'Руководитель проекта',tag:'результат',capacity:20,body:'В первый месяц нужен измеримый результат. Есть риск потратить первую половину проекта только на исследование.',hint:'На первые 2 недели у специалиста максимум 20 часов на проект. В обязанности также входят проектные встречи и синхронизация команды.'},
+    {title:'Бизнес-аналитик',tag:'данные',capacity:28,body:'У проблемы есть несколько конкурирующих причин. Автоматизировать ситуацию, которая ещё не изучена, рискованно.',hint:'На первые 2 недели у специалиста максимум 28 часов. Только эта роль может полноценно провести анализ данных.'},
+    {title:'Представитель производства',tag:'пилот',capacity:24,body:'Производственный участок готов проверить решение, но только один раз. Через две недели начинается пик работ.',hint:'На первые 2 недели у специалиста максимум 24 часа. Часть времени потребуется на работу с участком и организацию доступа.'},
+    {title:'IT / автоматизация',tag:'ресурс',capacity:32,body:'Разработчик доступен сейчас. После первой недели окно автоматизации резко сужается.',hint:'На первые 2 недели у специалиста максимум 32 часа. Задачи по автоматизации и цифровым инструментам в первую очередь относятся к этой роли; часть работы можно разделить с другими специалистами.'},
+    {title:'Заказчик / руководство',tag:'дедлайн',capacity:16,body:'Через 10 рабочих дней директору нужен понятный результат: причины, решение и первые подтверждения.',hint:'На первые 2 недели у специалиста максимум 16 часов. Эта роль помогает быстро получать согласования и принимать решения, но не предназначена для исполнения всех задач.'}
+  ];
+  const BASE_TASKS=[
+    {id:1,name:'Провести 10 интервью с мастерами и кладовщиками',hours:18,days:'3 дня',out:'Понимание реальных проблем'},
+    {id:2,name:'Описать текущий процесс «как есть»',hours:12,days:'2 дня',out:'Карта процесса'},
+    {id:3,name:'Проанализировать данные по 100 заявкам',hours:20,days:'4 дня',out:'Фактические причины задержек'},
+    {id:4,name:'Определить 3 главных узких места',hours:10,days:'3 дня',out:'Приоритетный список проблем'},
+    {id:5,name:'Разработать новую электронную форму заявки',hours:28,days:'5 дней',out:'Рабочий прототип'},
+    {id:6,name:'Создать Kanban-доску заявок',hours:16,days:'3 дня',out:'Видимый поток заявок'},
+    {id:7,name:'Разработать новые правила согласования',hours:12,days:'3 дня',out:'Новый порядок согласования'},
+    {id:8,name:'Разработать стандарт комплектации заявки',hours:16,days:'3 дня',out:'Чек-лист / стандарт'},
+    {id:9,name:'Подготовить пилот на одном участке',hours:24,days:'4 дня',out:'Готовность к тесту'},
+    {id:10,name:'Подготовить обучение сотрудников',hours:12,days:'2 дня',out:'Материалы обучения'},
+    {id:11,name:'Определить KPI и способ измерения результата',hours:8,days:'2 дня',out:'Методика измерения'},
+    {id:12,name:'Подготовить промежуточный отчёт директору',hours:6,days:'1 день',out:'Отчёт к концу 2-й недели'},
+    {id:13,name:'Проверить решение на соответствие требованиям ОТ',hours:8,days:'2 дня',out:'Разрешение на запуск'},
+    {id:14,name:'Подготовить план масштабирования',hours:10,days:'3 дня',out:'План расширения'}
+  ];
+  const BOARD_START=[
+    {id:'live-2',title:'Описание текущего процесса',hoursSpent:8,hoursLeft:4,cost:1,source:'начато до планирования'},
+    {id:'live-5',title:'Электронная форма заявки',hoursSpent:10,hoursLeft:18,cost:4,source:'IT начал заранее'},
+    {id:'live-10',title:'Обучение сотрудников',hoursSpent:4,hoursLeft:8,cost:1,source:'черновик запустили до утверждения процесса'},
+    {id:'live-3',title:'Анализ исторических данных',hoursSpent:12,hoursLeft:8,cost:2,source:'аналитик начал до Scrum'},
+    {id:'live-12',title:'Отчёт директору',hoursSpent:3,hoursLeft:3,cost:.5,source:'руководство запросило черновик'}
+  ];
+
+  let state={
+    screen:'home', coachPassword:'', sessionCode:null, sessionName:null, sessionStatus:'active', sessionEndedAt:null, teamNumber:null, variantIndex:0,
+    activeTeam:0, phase:'home', sprintSelected:[], sprintLocked:false, scrumSeconds:720, scrumStartedAt:null,
+    scrumTimer:null, scrumPoll:null, kanbanPoll:null,
+    kanban:{}, kanbanUrgent:false, saving:false,
+    exercise1Tasks:[], exercise1Locked:false, exercise1Poll:null, exercise1LastSync:null,
+    scrumPlan:{selectedIds:[],allocations:{},locked:false,updatedAt:null},
+    teamShared:{scrumPlan:null,kanban:null}
+  };
+  let coachSelectedCode=null;
+
+  let activeKanbanDrag=null,kanbanLocalDirty=false,kanbanSaving=false,kanbanRevision=0,kanbanLastWriteCompletedAt=0;
+  const $=id=>document.getElementById(id);
+  function api(path,opts={}){
+    const method=String(opts.method||'GET').toUpperCase();
+    const headers={'Content-Type':'application/json',...(opts.headers||{})};
+    return fetch(String(path),{
+      method,
+      headers,
+      body:method==='GET'||method==='HEAD'?undefined:(typeof opts.body==='string'?opts.body:undefined),
+      cache:'no-store',
+      credentials:'same-origin'
+    });
+  }
+  async function apiJson(res){
+    const text=await res.text();
+    const contentType=(res.headers.get('content-type')||'').toLowerCase();
+    if(!text.trim()) throw new Error(`API не вернул ответ (HTTP ${res.status}). Проверьте, что проект развёрнут на опубликовано веб-приложение серверное приложение.`);
+    try{ return JSON.parse(text); }
+    catch(_){
+      const preview=text.replace(/\s+/g,' ').trim().slice(0,180);
+      if(contentType.includes('text/html') || /^<!doctype html/i.test(text) || /^<html/i.test(text)) {
+        throw new Error(`API вернул HTML вместо JSON (HTTP ${res.status}). Обычно это означает, что маршрут /api не опубликован или домен/хостинг переписывает запрос в index.html. Ответ: ${preview}`);
+      }
+      throw new Error(`API вернул некорректный ответ (HTTP ${res.status}). Ответ: ${preview}`);
+    }
+  }
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const target=$('screen-'+name); if(!target)return;
+    target.classList.add('active');
+    state.screen=name;
+    const labels={home:'Вход',coach:'Кабинет ведущего',ex1:'Упражнение 1',scrum:'Scrum',kanban:'Kanban',debrief:'Дебриф'}[name]||name;
+    const phasePill=$('phasePill'); if(phasePill)phasePill.textContent='Фаза: '+labels;
+    if(name!=='scrum'){stopScrumPolling();stopTimer();}
+    if(name!=='kanban')stopKanbanPolling();
+    if(name==='scrum'&&!state.scrumPlan.locked){startScrumPolling();startTimer();}
+    if(name==='kanban')startKanbanPolling();
+    setSessionStatusBanner();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function setPills(){
+    const sessionPill=$('sessionPill'), teamPill=$('teamPill');
+    if(sessionPill)sessionPill.textContent='Сессия: '+(state.sessionCode||'—');
+    if(teamPill)teamPill.textContent='Команда: '+(state.teamNumber||'—');
+  }
+  function setSessionStatusBanner(){
+    const banner=$('sessionStatusBanner');
+    if(!banner)return;
+    if(state.screen!=='coach' && state.screen!=='home' && state.sessionCode && state.sessionStatus!=='active'){
+      banner.className='alert';
+      banner.innerHTML=state.sessionStatus==='deleted'
+        ? '<b>Сессия удалена ведущим.</b> Текущее состояние больше не синхронизируется.'
+        : '<b>Сессия завершена ведущим.</b> Текущее состояние доступно для просмотра, но изменения больше не принимаются.';
+    }else{
+      banner.className='hidden';
+      banner.innerHTML='';
+    }
+  }
+  function sessionWritable(){ return !!state.sessionCode && !!state.teamNumber && state.sessionStatus==='active'; }
+  function stopAllParticipantLoops(){
+    stopExercise1Polling();
+    stopScrumPolling();
+    stopKanbanPolling();
+    stopTimer();
+  }
+  function saveLocal(){
+    if(state.sessionCode&&state.teamNumber){
+      const snapshot={...state};
+      delete snapshot.scrumTimer;delete snapshot.scrumPoll;delete snapshot.kanbanPoll;delete snapshot.exercise1Poll;
+      snapshot.localSavedAt=Date.now();
+      persistentSet('sk:'+state.sessionCode+':'+state.teamNumber,JSON.stringify(snapshot));
+    }
+  }
+  function saveStatus(text,color='ok'){
+    const el=$('savePill'); if(!el)return;
+    el.textContent=text;
+    el.style.borderColor=color==='bad'?'#C33843':'rgba(255,255,255,.35)';
+  }
+  async function saveState(){
+    if(!sessionWritable())return;
+    saveLocal(); saveStatus('● сохраняем…');
+    try{
+      const {exercise1Tasks, exercise1Locked, exercise1Poll, exercise1LastSync, ...sharedState}=state;
+      const res=await api('/api/session',{method:'POST',body:JSON.stringify({action:'saveState',sessionCode:state.sessionCode,teamNumber:state.teamNumber,state:{...sharedState,phase:state.phase}})});
+      if(!res.ok)throw new Error('save');kanbanSaving=false;if(saveRevision===kanbanRevision){kanbanLocalDirty=false;kanbanLastWriteCompletedAt=Date.now()}else{kanbanLocalDirty=true;setTimeout(saveKanbanShared,150)}
+      saveStatus('● сохранено');
+    }catch(e){saveStatus('● локально сохранено','bad')}
+  }
+  function renderScrumTimer(){
+    const el=$('scrumTimer');
+    if(!el)return;
+    const sec=Math.max(0,Number(state.scrumSeconds)||0);
+    const m=String(Math.floor(sec/60)).padStart(2,'0');
+    const ss=String(sec%60).padStart(2,'0');
+    el.textContent=m+':'+ss;
+  }
+  function updateTimer(){
+    if(!state.scrumStartedAt){ state.scrumSeconds=720; renderScrumTimer(); return; }
+    const started=Date.parse(state.scrumStartedAt);
+    if(!Number.isFinite(started)){ state.scrumStartedAt=null; state.scrumSeconds=720; renderScrumTimer(); return; }
+    state.scrumSeconds=Math.max(0,720-Math.floor((Date.now()-started)/1000));
+    renderScrumTimer();
+    if(state.scrumSeconds<=0)stopTimer();
+  }
+  async function startTimer(){
+    if(state.sessionStatus!=='active'||!state.sessionCode||!state.teamNumber)return;
+    if(!state.scrumTimer)state.scrumTimer=setInterval(updateTimer,1000);
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'startScrumTimer',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber
+        })
+      });
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось запустить таймер');
+      if(data.scrumStartedAt){
+        state.scrumStartedAt=data.scrumStartedAt;
+        updateTimer();
+        saveLocal();
+      }
+    }catch(e){
+      // До ответа сервера не считаем локальное время источником истины.
+      state.scrumStartedAt=null;
+      state.scrumSeconds=720;
+      renderScrumTimer();
+      if($('scrumFeedback'))$('scrumFeedback').innerHTML='<div class="alert"><b>Не удалось запустить общий таймер.</b><br>'+String(e.message||e)+'</div>';
+      if(state.scrumTimer){clearInterval(state.scrumTimer);state.scrumTimer=null;}
+    }
+  }
+
+  function stopTimer(){
+    if(state.scrumTimer){clearInterval(state.scrumTimer);state.scrumTimer=null;}
+  }
+
+  function exerciseTaskFromBase(id){
+    const t=BASE_TASKS.find(x=>x.id===Number(id));
+    if(!t)return null;
+    return {
+      id:'base-'+t.id,
+      baseId:t.id,
+      title:t.name,
+      hours:t.hours,
+      days:t.days,
+      out:t.out
+    };
+  }
+
+  async function loadExercise1State(showErrors=true){
+    if(!state.sessionCode||!state.teamNumber)return null;
+    try{
+      const res=await api('/api/session?code='+encodeURIComponent(state.sessionCode)+'&team='+state.teamNumber+'&exercise=1&create=0',{method:'GET'});
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok) throw new Error(data.error||'Не удалось загрузить общий backlog');
+      if(data.session?.status){
+        state.sessionStatus=data.session.status;
+        state.sessionEndedAt=data.session.endedAt||null;
+        setSessionStatusBanner();
+        if(state.sessionStatus!=='active')stopExercise1Polling();
+      }
+
+      delete state.roleIndex;
+      delete state.participantId;
+      state.exercise1Tasks=Array.isArray(data.exercise1?.tasks)?data.exercise1.tasks:[];
+      state.exercise1Locked=!!data.exercise1?.locked;
+      if(data.shared?.scrumStartedAt)state.scrumStartedAt=data.shared.scrumStartedAt;
+      if(data.shared?.scrumPlan){
+        state.scrumPlan={
+          selectedIds:Array.isArray(data.shared.scrumPlan.selectedIds)?data.shared.scrumPlan.selectedIds:[],
+          allocations:data.shared.scrumPlan.allocations||{},
+          locked:!!data.shared.scrumPlan.locked,
+          updatedAt:data.shared.scrumPlan.updatedAt||null
+        };
+        state.sprintSelected=[...state.scrumPlan.selectedIds];
+      }
+      if(data.shared?.kanban)state.kanban=data.shared.kanban;
+      state.exercise1LastSync=new Date().toISOString();
+
+      renderExercise1();
+
+      if(state.exercise1Locked && state.phase==='ex1'){
+        stopExercise1Polling();
+        state.phase='scrum';
+        await loadScrumPlan(false);
+        renderScrum();
+        showScreen('scrum');
+        saveState();
+      }
+      return data;
+    }catch(e){
+      if(e?.message==='Сессия не найдена.') { state.sessionStatus='deleted'; setSessionStatusBanner(); stopAllParticipantLoops(); }
+      if(showErrors && $('exercise1Feedback')){
+        $('exercise1Feedback').innerHTML='<div class="alert"><b>Не удалось обновить общий список.</b><br>'+String(e.message||e)+'</div>';
+      }
+      return null;
+    }
+  }
+
+  function startExercise1Polling(){
+    stopExercise1Polling();
+    refreshExercise1Now();
+    state.exercise1Poll=setInterval(refreshExercise1Now,1500);
+  }
+
+  async function refreshExercise1Now(){
+    const data=await loadExercise1State(false);
+    if(data && $('exercise1Sync')){
+      $('exercise1Sync').textContent='● обновлено';
+      setTimeout(()=>{if($('exercise1Sync'))$('exercise1Sync').textContent='● live'},700);
+    }
+  }
+
+  function stopExercise1Polling(){
+    if(state.exercise1Poll){
+      clearInterval(state.exercise1Poll);
+      state.exercise1Poll=null;
+    }
+  }
+
+  async function addExerciseTask(task){
+    if(!sessionWritable()||state.exercise1Locked)return;
+    if(!task || !task.baseId){
+      $('exercise1Feedback').innerHTML='<div class="alert">Можно выбирать только задачи из предложенного списка.</div>';
+      return;
+    }
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'addExerciseTask',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber,
+          task
+        })
+      });
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось добавить задачу');
+      state.exercise1Tasks=data.tasks||state.exercise1Tasks;
+      renderExercise1();
+    }catch(e){
+      $('exercise1Feedback').innerHTML='<div class="alert">'+String(e.message||e)+'</div>';
+    }
+  }
+
+  async function removeExerciseTask(taskId){
+    if(!sessionWritable()||state.exercise1Locked)return;
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'removeExerciseTask',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber,
+          taskId
+        })
+      });
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось удалить задачу');
+      state.exercise1Tasks=data.tasks||state.exercise1Tasks;
+      renderExercise1();
+    }catch(e){
+      $('exercise1Feedback').innerHTML='<div class="alert">'+String(e.message||e)+'</div>';
+    }
+  }
+
+  async function lockExercise1(){
+    if(!sessionWritable())return;
+    const count=state.exercise1Tasks.length;
+    if(count<5){
+      $('exercise1Feedback').innerHTML='<div class="alert"><b>Добавьте ещё задачи.</b><br>Для перехода дальше нужно минимум 5 задач.</div>';
+      return;
+    }
+    if(count>10){
+      $('exercise1Feedback').innerHTML='<div class="alert"><b>Слишком много задач.</b><br>Сейчас в списке '+count+'. Оставьте не более 10.</div>';
+      return;
+    }
+
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'lockExercise1',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber
+        })
+      });
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось зафиксировать backlog');
+
+      state.exercise1Tasks=data.tasks||state.exercise1Tasks;
+      state.exercise1Locked=true;
+      state.phase='scrum';
+      renderExercise1();
+      stopExercise1Polling();
+      renderScrum();
+      showScreen('scrum');
+      saveState();
+    }catch(e){
+      $('exercise1Feedback').innerHTML='<div class="alert">'+String(e.message||e)+'</div>';
+    }
+  }
+
+  function renderExercise1(){
+    renderAllRoles('exercise1MyRole');
+    const bank=$('exercise1Bank');
+    if(!bank)return;
+    const selectedIds=new Set(state.exercise1Tasks.map(x=>String(x.baseId ? 'base-'+x.baseId : x.id)));
+
+    bank.innerHTML='';
+    BASE_TASKS.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='task-card';
+      const selected=selectedIds.has('base-'+t.id);
+      row.innerHTML=`
+        <div class="title">${t.name}</div>
+        <div class="task-meta">
+          <span class="tag red">${t.hours} ч</span>
+          <span class="tag">${t.days}</span>
+        </div>
+        <button class="btn ${selected?'secondary':''}" style="margin-top:9px;min-height:36px;padding:7px 10px" ${selected||state.exercise1Locked||state.sessionStatus!=='active'?'disabled':''}>
+          ${selected?'Уже в общем списке':'Добавить'}
+        </button>`;
+      const btn=row.querySelector('button');
+      if(!selected&&!state.exercise1Locked)btn.onclick=()=>addExerciseTask(exerciseTaskFromBase(t.id));
+      bank.appendChild(row);
+    });
+
+    $('exercise1Meta').textContent=`Задач в общем списке: ${state.exercise1Tasks.length} · минимум 5 · максимум 10`;
+    $('exercise1LockBox').classList.toggle('hidden',state.exercise1Locked);
+    $('exercise1LockedBox').classList.toggle('hidden',!state.exercise1Locked);
+    const lockBtn=$('lockExercise1Btn'); if(lockBtn)lockBtn.disabled=state.sessionStatus!=='active';
+
+    const list=$('exercise1SharedList');
+    list.innerHTML='';
+    if(!state.exercise1Tasks.length){
+      list.innerHTML='<div class="muted center" style="padding:30px 12px">Пока никто не добавил задачу.<br>Добавьте первую — остальные увидят её автоматически.</div>';
+    }else{
+      state.exercise1Tasks.forEach((task,idx)=>{
+        const card=document.createElement('div');
+        card.className='task-card';
+        card.innerHTML=`
+          <div class="title">${idx+1}. ${task.title}</div>
+          <div class="task-meta">
+            <span class="tag red">${Number(task.hours)||8} ч</span>
+            <span class="tag">${task.days||'оценка'}</span>
+            <span class="tag dark">из банка кейса</span>
+          </div>
+          ${state.exercise1Locked||state.sessionStatus!=='active'?'':`<button class="btn secondary" style="margin-top:8px;min-height:34px;padding:6px 9px">Убрать</button>`}`;
+        if(!state.exercise1Locked){
+          const btn=card.querySelector('button');
+          btn.onclick=()=>removeExerciseTask(task.id);
+        }
+        list.appendChild(card);
+      });
+    }
+  }
+
+
+  function persistentGet(key){
+    try{const value=localStorage.getItem(key);if(value!==null)return value;}catch(_){}
+    try{return sessionStorage.getItem(key);}catch(_){return null;}
+  }
+  function persistentSet(key,value){
+    try{localStorage.setItem(key,value);return true;}catch(_){}
+    try{sessionStorage.setItem(key,value);return true;}catch(_){return false;}
+  }
+  function sessionGet(key){try{return sessionStorage.getItem(key);}catch(_){return null;}}
+  function sessionSet(key,value){try{sessionStorage.setItem(key,value);}catch(_){}}
+  function readLocalSnapshot(code,team){
+    try{
+      const saved=JSON.parse(persistentGet('sk:'+code+':'+team)||'null');
+      return saved&&saved.sessionCode===code&&Number(saved.teamNumber)===team?saved:null;
+    }catch(_){return null;}
+  }
+
+  function renderAllRoles(targetId){
+    const target=$(targetId); if(!target)return;
+    const variant=VARIANTS[state.variantIndex]||VARIANTS[0];
+    target.innerHTML='<div class="role-grid">'+ROLES.map(function(r,i){return '<article class="role-note"><h4>'+r.title+' <span class="tag red">'+r.tag+'</span></h4><p><b>Описание:</b> '+r.body+'</p><p><b>Мощность на первые 2 недели:</b> '+r.capacity+' ч.</p><p><b>Рабочий нюанс:</b> '+r.hint+'</p><p><b>Информация по кейсу:</b> '+variant.hidden[i]+'</p></article>';}).join('')+'</div>';
+  }
+  async function loadParticipant(options={}){
+    const code=String(options.codeOverride ?? $('participantSession').value ?? '').trim();
+    const team=Number(options.teamOverride ?? $('participantTeam').value);
+    const f=$('participantFeedback');
+
+    if(!code||!Number.isInteger(team)||team<1||team>4){
+      f.innerHTML='<div class="alert">Введите любой код сессии и номер команды от 1 до 4.</div>';
+      return;
+    }
+
+    const safeCode=code.toUpperCase();
+    const localSnapshot=options.restore?readLocalSnapshot(safeCode,team):null;
+    stopAllParticipantLoops();
+    f.innerHTML='<div class="info">Входим в сессию команды…</div>';
+
+    try{
+      const url='/api/session?code='+encodeURIComponent(safeCode)+'&team='+team+'&create='+(options.restore?'0':'1');
+      const res=await api(url,{method:'GET'});
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось открыть сессию.');
+
+      state.sessionCode=safeCode;
+      state.teamNumber=team;
+      state.sessionStatus=data.session.status||'active';
+      state.sessionEndedAt=data.session.endedAt||null;
+      state.sessionName=data.session.name;
+      state.variantIndex=data.team.variantIndex;
+      state.activeTeam=team-1;
+      if(data.shared?.scrumStartedAt)state.scrumStartedAt=data.shared.scrumStartedAt;
+      const remoteSavedAt=Date.parse(data.state?.serverSavedAt||'')||0;
+      const useLocalSnapshot=!!localSnapshot&&(!data.state||Number(localSnapshot.localSavedAt||0)>remoteSavedAt);
+      if(data.state||useLocalSnapshot){
+        Object.assign(state,useLocalSnapshot?localSnapshot:data.state);if(data.state&&data.state.phase)state.phase=data.state.phase;
+        state.sessionCode=safeCode;
+        state.teamNumber=team;
+        state.sessionStatus=data.session.status||'active';
+        state.sessionEndedAt=data.session.endedAt||null;
+        state.variantIndex=data.team.variantIndex;
+        state.activeTeam=team-1;
+      }else{
+        state.phase='ex1';
+        state.sprintSelected=[];
+        state.sprintLocked=false;
+        state.scrumSeconds=720;
+        state.scrumStartedAt=null;
+      }
+
+      state.exercise1Tasks=Array.isArray(data.exercise1?.tasks)?data.exercise1.tasks:[];
+      state.exercise1Locked=!!data.exercise1?.locked;
+
+      persistentSet('sk:lastParticipant',JSON.stringify({code:safeCode,team}));
+      sessionSet('sk:mode','participant');
+      setPills();
+      setSessionStatusBanner();
+      saveStatus(state.sessionStatus==='ended'?'● сессия завершена':state.sessionStatus==='deleted'?'● сессия недоступна':'● сохранено');
+      f.innerHTML='';
+
+      renderAllRoles('exercise1MyRole');
+      if(state.exercise1Locked && state.phase==='ex1'){
+        state.phase='scrum';
+      }
+      if(state.scrumPlan.locked){
+        state.phase='kanban';
+      }
+
+      if(state.phase==='kanban'){
+        initKanbanIfNeeded();
+        renderKanban();
+        showScreen('kanban');
+      }else if(state.phase==='debrief'){
+        initKanbanIfNeeded();
+        renderKanban();
+        updateDebrief();
+        showScreen('debrief');
+      }else if(state.phase==='scrum'){
+        renderScrum();
+        showScreen('scrum');
+        loadScrumPlan(false);
+        if(state.sessionStatus==='active'){ updateTimer();startTimer(); } else updateTimer();
+      }else{
+        state.phase='ex1';
+        renderExercise1();
+        showScreen('ex1');
+        startExercise1Polling();
+        if(state.sessionStatus==='active')saveState();
+      }
+    }catch(e){
+      f.innerHTML='<div class="alert"><b>Не удалось войти.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+
+
+  function tasks(){
+    const tweak=VARIANTS[state.variantIndex].taskTweaks||{};
+    if(Array.isArray(state.exercise1Tasks) && state.exercise1Tasks.length){
+      return state.exercise1Tasks.map(item=>{
+        const base=BASE_TASKS.find(x=>x.id===Number(item.baseId));
+        if(!base)return null;
+        return {...base,id:item.id,baseId:base.id,hours:base.hours+(tweak[base.id]||0)};
+      }).filter(Boolean);
+    }
+    return [];
+  }
+
+  function roleCapacity(roleIndex){
+    return Number(ROLES[roleIndex]?.capacity||0);
+  }
+
+  function totalAllocatedByRole(roleIndex){
+    return Object.values(state.scrumPlan.allocations||{}).reduce((sum,alloc)=>{
+      return sum + Number(alloc?.[roleIndex]||0);
+    },0);
+  }
+
+  function taskAllocated(taskId){
+    const alloc=state.scrumPlan.allocations?.[taskId]||{};
+    return Object.values(alloc).reduce((s,v)=>s+Number(v||0),0);
+  }
+
+  function renderTeamCapacitySummary(){
+    const el=$('teamCapacitySummary');
+    if(!el)return;
+    let html='<div class="grid" style="gap:7px">';
+    ROLES.forEach((r,i)=>{
+      const used=totalAllocatedByRole(i), cap=r.capacity;
+      html+=`<div class="metric"><span>${r.title}</span><strong class="${used>cap?'capacity-over':'capacity-ok'}">${used} / ${cap} ч</strong></div>`;
+    });
+    html+='</div>';
+    el.innerHTML=html;
+  }
+
+  function renderMyRole(){
+    renderAllRoles('myRoleCard');
+  }
+  function renderScrum(){
+    renderMyRole();
+    renderTeamCapacitySummary();
+
+    if(!state.exercise1Tasks.length){
+      $('scrumFeedback').innerHTML='<div class="alert"><b>Нет задач из упражнения 1.</b><br>Вернитесь к общему backlog и передайте задачи в Scrum.</div>';
+    }else if(state.scrumPlan.locked){
+      $('scrumFeedback').innerHTML='<div class="success"><b>План спринта уже зафиксирован.</b> Команда работает с одной общей версией.</div>';
+    }
+
+    const body=$('backlogBody');body.innerHTML='';
+    const selected=new Set(state.scrumPlan.selectedIds||[]);
+    tasks().forEach(t=>{
+      const tr=document.createElement('tr');
+      const isSelected=selected.has(t.id);
+      tr.innerHTML=`<td><span class="tag dark">${t.id}</span></td>
+        <td><b>${t.name}</b></td>
+        <td><b>${t.hours} ч</b></td>
+        <td>${t.days}</td>
+        <td class="muted">${t.out}</td>
+        <td><button class="btn ${isSelected?'secondary':''}" style="min-height:38px;padding:8px 10px" ${state.scrumPlan.locked||isSelected?'disabled':''}>${isSelected?'Выбрана':'Добавить'}</button></td>`;
+      const btn=tr.querySelector('button');
+      if(!isSelected&&!state.scrumPlan.locked)btn.onclick=()=>addSprint(t.id);
+      body.appendChild(tr);
+    });
+
+    renderSelected();
+    renderAllocationPanel();
+    if($('clearSprintBtn'))$('clearSprintBtn').disabled=state.sessionStatus!=='active'||state.scrumPlan.locked;
+    if($('lockSprintBtn'))$('lockSprintBtn').disabled=state.sessionStatus!=='active'||state.scrumPlan.locked;
+    setPills();
+  }
+
+  async function loadScrumPlan(showErrors=true){
+    if(!state.sessionCode||!state.teamNumber)return null;
+    try{
+      const res=await api('/api/session?code='+encodeURIComponent(state.sessionCode)+'&team='+state.teamNumber+'&shared=1&create=0',{method:'GET'});
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось загрузить общий план');
+      if(data.session?.status){
+        state.sessionStatus=data.session.status;
+        state.sessionEndedAt=data.session.endedAt||null;
+        setSessionStatusBanner();
+        if(state.sessionStatus!=='active')stopScrumPolling();
+      }
+
+      if(data.shared?.scrumStartedAt)state.scrumStartedAt=data.shared.scrumStartedAt;
+      if(data.shared?.scrumPlan&&!document.activeElement?.classList.contains("allocation-input")&&!(Date.now()-(state.scrumLastLocalEditAt||0)<5000)){
+        state.scrumPlan={
+          selectedIds:Array.isArray(data.shared.scrumPlan.selectedIds)?data.shared.scrumPlan.selectedIds:[],
+          allocations:data.shared.scrumPlan.allocations||{},
+          locked:!!data.shared.scrumPlan.locked,
+          updatedAt:data.shared.scrumPlan.updatedAt||null
+        };
+        state.sprintSelected=[...state.scrumPlan.selectedIds];
+      }
+      if(data.shared?.kanban)state.kanban=data.shared.kanban;
+
+      renderScrum();
+
+      if(state.scrumPlan.locked && state.phase==='scrum'){
+        state.phase='kanban';
+        stopScrumPolling();
+        startKanbanPolling();
+        renderKanban();
+        showScreen('kanban');
+        saveState();
+      }
+      return data;
+    }catch(e){
+      if(e?.message==='Сессия не найдена.') { state.sessionStatus='deleted'; setSessionStatusBanner(); stopAllParticipantLoops(); }
+      if(showErrors)$('scrumFeedback').innerHTML='<div class="alert"><b>Не удалось обновить общий Scrum-план.</b><br>'+String(e.message||e)+'</div>';
+      return null;
+    }
+  }
+
+  function startScrumPolling(){
+    stopScrumPolling();
+    refreshScrumNow();
+    state.scrumPoll=setInterval(refreshScrumNow,1500);
+  }
+  async function refreshScrumNow(){
+    const before=JSON.stringify(state.scrumPlan);
+    const data=await loadScrumPlan(false);
+    if(data && $('scrumSyncChip')){
+      $('scrumSyncChip').innerHTML='<span class="live-dot"></span> live-план команды';
+    }
+    return before;
+  }
+  function stopScrumPolling(){
+    if(state.scrumPoll){clearInterval(state.scrumPoll);state.scrumPoll=null;}
+  }
+
+  async function saveScrumPlan(){
+    if(!sessionWritable()||state.scrumPlan.locked)return;
+    state.scrumPlan.updatedAt=new Date().toISOString();
+    state.sprintSelected=[...state.scrumPlan.selectedIds];
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'saveScrumPlan',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber,
+          scrumPlan:state.scrumPlan
+        })
+      });
+      if(!res.ok){const err=await apiJson(res);throw new Error(err.error||'save');}
+      saveStatus('● Scrum сохранён');
+      renderTeamCapacitySummary();
+    }catch(e){saveStatus('● локально','bad')}
+  }
+
+  function addSprint(id){
+    if(!sessionWritable()||state.scrumPlan.locked)return;
+    if(!state.scrumPlan.selectedIds.includes(id)){state.scrumLastLocalEditAt=Date.now();
+      state.scrumPlan.selectedIds.push(id);
+      state.sprintSelected=[...state.scrumPlan.selectedIds];
+      renderScrum();
+      saveScrumPlan();
+    }
+  }
+  function removeSprint(id){
+    if(!sessionWritable()||state.scrumPlan.locked)return;
+    state.scrumLastLocalEditAt=Date.now();state.scrumPlan.selectedIds=state.scrumPlan.selectedIds.filter(x=>x!==id);
+    delete state.scrumPlan.allocations[id];
+    state.sprintSelected=[...state.scrumPlan.selectedIds];
+    renderScrum();
+    saveScrumPlan();
+  }
+  function renderSelected(){
+    const c=$('selectedTasks');c.innerHTML='';
+    if(!state.scrumPlan.selectedIds.length){
+      c.innerHTML='<div class="muted center" style="padding:24px">Пока ничего не выбрано.</div>';
+    }
+    state.scrumPlan.selectedIds.forEach((id,i)=>{
+      const t=tasks().find(x=>x.id===id);if(!t)return;
+      const allocated=taskAllocated(id), status=allocated===t.hours?'ok':allocated>t.hours?'over':'partial';
+      const card=document.createElement('div');card.className='task-card';card.draggable=!state.scrumPlan.locked;card.dataset.id=id;
+      card.innerHTML=`<div class="title">${i+1}. ${t.name}</div>
+        <div class="task-meta"><span class="tag red">${t.hours} ч</span><span class="tag">${t.days}</span>
+        <span class="tag ${status==='ok'?'dark':status==='over'?'red':''}">распределено ${allocated} ч</span>
+        ${state.scrumPlan.locked?'':'<button class="btn secondary" style="margin-left:auto;min-height:32px;padding:5px 8px">Убрать</button>'}</div>`;
+      if(!state.scrumPlan.locked){
+        card.querySelector('button').onclick=()=>removeSprint(id);
+        card.addEventListener('click',e=>{
+          if(e.target.closest('button'))return;
+          const arr=state.scrumPlan.selectedIds,i=arr.indexOf(id);
+          if(i>0){arr.splice(i,1);arr.splice(i-1,0,id);state.sprintSelected=[...arr];renderScrum();saveScrumPlan();}
+        });
+      }
+      c.appendChild(card);
+    });
+    const total=state.scrumPlan.selectedIds.reduce((s,id)=>s+(tasks().find(t=>t.id===id)?.hours||0),0);
+
+  }
+
+  function renderAllocationPanel(){
+    const wrap=$('resourceAllocationPanel');if(!wrap)return;
+    const selected=state.scrumPlan.selectedIds;
+    if(!selected.length){wrap.innerHTML='<div class="muted">Сначала выберите задачи.</div>';return;}
+
+    let html='<div class="resource-table-wrap"><table class="resource-table"><thead><tr><th>Задача</th>';
+    ROLES.forEach(r=>html+=`<th>${r.title}<br><span class="small">${r.capacity} ч</span></th>`);
+    html+='<th>Итого</th></tr></thead><tbody>';
+
+    selected.forEach(id=>{
+      const t=tasks().find(x=>x.id===id);if(!t)return;
+      const alloc=state.scrumPlan.allocations[id]||{};
+      const sum=taskAllocated(id);
+      html+=`<tr><td><b>${t.name}</b><br><span class="small muted">нужно ${t.hours} ч</span></td>`;
+      ROLES.forEach((r,i)=>{
+        html+=`<td><input class="hours-input allocation-input" type="number" min="0" max="${r.capacity}" step="1"
+          data-task="${id}" data-role="${i}" value="${Number(alloc[i]||0)}" ${state.scrumPlan.locked||state.sessionStatus!=='active'?'disabled':''}></td>`;
+      });
+      html+=`<td><b class="${sum===t.hours?'capacity-ok':sum>t.hours?'capacity-over':''}">${sum}/${t.hours}</b></td></tr>`;
+    });
+    html+='</tbody></table></div>';
+
+    html+='<div class="grid grid-3" style="margin-top:10px">';
+    ROLES.forEach((r,i)=>{
+      const used=totalAllocatedByRole(i);
+      html+=`<div class="score-box"><span class="muted small">${r.title}</span><strong class="${used>r.capacity?'capacity-over':'capacity-ok'}">${used}/${r.capacity} ч</strong></div>`;
+    });
+    html+='</div>';
+
+    wrap.innerHTML=html;
+    wrap.querySelectorAll('.allocation-input').forEach(input=>{
+      input.addEventListener('input',()=>{const taskId=input.dataset.task,role=Number(input.dataset.role);state.scrumLastLocalEditAt=Date.now();state.scrumPlan.allocations[taskId]=state.scrumPlan.allocations[taskId]||{};state.scrumPlan.allocations[taskId][role]=Math.max(0,Number(input.value)||0)});input.addEventListener('change',()=>{
+        const taskId=input.dataset.task,role=Number(input.dataset.role);
+        state.scrumPlan.allocations[taskId]=state.scrumPlan.allocations[taskId]||{};
+        state.scrumPlan.allocations[taskId][role]=Math.max(0,Number(input.value)||0);
+        renderSelected();
+        renderAllocationPanel();
+        saveScrumPlan();
+      });
+    });
+  }
+
+
+  function validateScrumPlan(){
+    const selected=state.scrumPlan.selectedIds;
+    if(!selected.length)return 'Выберите хотя бы одну задачу.';
+    if(selected.some(id=>!tasks().some(t=>t.id===id)))return 'В Sprint Backlog есть задача не из общего backlog.';
+    const allTasks=tasks();
+
+    for(const id of selected){
+      const t=allTasks.find(x=>x.id===id),sum=taskAllocated(id);
+      if(sum!==t.hours)return `Задача «${t.name}» распределена на ${sum} ч из ${t.hours} ч.`;
+    }
+    for(let i=0;i<ROLES.length;i++){
+      const used=totalAllocatedByRole(i);
+      if(used>roleCapacity(i))return `Превышен лимит роли «${ROLES[i].title}»: ${used} из ${roleCapacity(i)} ч.`;
+    }
+    return null;
+  }
+
+  async function lockSprint(){
+    if(!sessionWritable())return;
+    if(!state.exercise1Locked){
+      $('scrumFeedback').innerHTML='<div class="alert"><b>Сначала завершите упражнение 1.</b></div>';
+      return;
+    }
+    const error=validateScrumPlan();
+    if(error){$('scrumFeedback').innerHTML='<div class="alert">'+error+'</div>';return;}
+
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'lockScrum',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber,
+          scrumPlan:state.scrumPlan
+        })
+      });
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok)throw new Error(data.error||'Не удалось зафиксировать Scrum');
+
+      state.scrumPlan={...state.scrumPlan,locked:true};
+      state.sprintSelected=[...state.scrumPlan.selectedIds];
+      state.kanban=data.kanban;
+      state.phase='kanban';
+      stopScrumPolling();
+      renderKanban();
+      showScreen('kanban');
+      saveState();
+    }catch(e){
+      $('scrumFeedback').innerHTML='<div class="alert"><b>Не удалось зафиксировать спринт.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+
+
+  function startKanbanPolling(){
+    stopKanbanPolling();
+    refreshKanbanNow();
+    state.kanbanPoll=setInterval(refreshKanbanNow,1500);
+  }
+  async function refreshKanbanNow(){const pollStartedAt=Date.now();
+    if(!state.sessionCode||!state.teamNumber)return;
+    try{
+      const res=await api('/api/session?code='+encodeURIComponent(state.sessionCode)+'&team='+state.teamNumber+'&shared=1&create=0',{method:'GET'});
+      const data=await apiJson(res);
+      if(!res.ok||!data.ok){
+        if(res.status===404){
+          state.sessionStatus='deleted';
+          setSessionStatusBanner();
+          stopAllParticipantLoops();
+          renderKanban();
+        }
+        return;
+      }
+      if(data.session?.status){
+        state.sessionStatus=data.session.status;
+        state.sessionEndedAt=data.session.endedAt||null;
+        setSessionStatusBanner();
+        if(state.sessionStatus!=='active')stopKanbanPolling();
+      }
+      if(data.shared?.kanban&&!kanbanLocalDirty&&pollStartedAt>kanbanLastWriteCompletedAt){
+        state.kanban=data.shared.kanban;
+        state.kanbanUrgent=!!data.shared.kanbanUrgent;
+        renderKanban();
+      }
+    }catch(_){}
+  }
+  function stopKanbanPolling(){
+    if(state.kanbanPoll){clearInterval(state.kanbanPoll);state.kanbanPoll=null;}
+  }
+  async function saveKanbanShared(){if(!sessionWritable())return;if(kanbanSaving){kanbanLocalDirty=true;return}kanbanSaving=true;const saveRevision=kanbanRevision;
+    if(!sessionWritable())return;
+    try{
+      const res=await api('/api/session',{
+        method:'POST',
+        body:JSON.stringify({
+          action:'saveKanban',
+          sessionCode:state.sessionCode,
+          teamNumber:state.teamNumber,
+          kanban:state.kanban,
+          kanbanUrgent:state.kanbanUrgent
+        })
+      });
+      if(!res.ok)throw new Error('save');kanbanSaving=false;if(saveRevision===kanbanRevision){kanbanLocalDirty=false;kanbanLastWriteCompletedAt=Date.now()}else{kanbanLocalDirty=true;setTimeout(saveKanbanShared,150)}
+      saveStatus('● Kanban сохранён');
+    }catch(_){kanbanSaving=false;kanbanLocalDirty=true;saveStatus('● локально','bad')}
+  }
+
+  function initKanbanIfNeeded(force=false){
+    if(state.kanban&&Array.isArray(state.kanban.backlog)&&Array.isArray(state.kanban.doing)&&state.kanban.backlog.length+state.kanban.doing.length+state.kanban.todo.length+state.kanban.done.length)return;
+    const monthly=state.exercise1Tasks.map(item=>{
+      const base=BASE_TASKS.find(x=>x.id===Number(item.baseId));if(!base)return null;
+      return {id:item.id,baseId:base.id,title:base.name,hours:base.hours+(VARIANTS[state.variantIndex].taskTweaks?.[base.id]||0)};
+    }).filter(Boolean);
+
+    const selectedSet=new Set(state.scrumPlan.selectedIds||[]);
+    const selected=monthly.filter(t=>selectedSet.has(t.id));
+    const inProgressPreference={
+      0:[2,3,5,6,7],
+      1:[3,6,8,7,5],
+      2:[5,7,8,9,3],
+      3:[2,5,8,11,6]
+    }[state.variantIndex]||[2,3,5,6,7,8,9];
+    const unselected=monthly.filter(t=>!selectedSet.has(t.id));
+    const doing=[];
+    for(const baseId of inProgressPreference){
+      const found=unselected.find(t=>t.baseId===baseId);
+      if(found&&!doing.some(x=>x.id===found.id))doing.push(found);
+      if(doing.length===3)break;
+    }
+    for(const t of unselected){
+      if(doing.length===3)break;
+      if(!doing.some(x=>x.id===t.id))doing.push(t);
+    }
+    const remaining=unselected.filter(t=>!doing.some(x=>x.id===t.id));
+    const todo=remaining.slice(0,2);
+
+    const reasons={
+      2:'Мастер участка уже фиксирует текущий процесс обеспечения заявки',
+      3:'Аналитик уже разбирает исторические заявки и ищет причины задержек',
+      5:'IT уже начал прототип цифровой формы заявки',
+      6:'Команда уже пробует собрать видимый поток заявок',
+      7:'Начата проверка маршрута согласования заявок',
+      8:'Начали формировать стандарт комплекта заявки',
+      9:'Подготовку пилота начали до общего планирования',
+      11:'Начали формировать способ измерения времени прохождения заявки'
+    };
+
+    state.kanban={
+      backlog:selected.map(t=>({
+        id:'backlog-'+t.id,baseId:t.baseId,title:t.title,hoursSpent:0,hoursLeft:t.hours,cost:0,
+        source:'Выбрана командой на Scrum Planning — ожидает движения в потоке'
+      })),
+      todo:todo.map(t=>({
+        id:'todo-'+t.id,baseId:t.baseId,title:t.title,hoursSpent:0,hoursLeft:t.hours,cost:0,
+        source:'Задача из месячного backlog, но ещё не начата'
+      })),
+      doing:doing.map((t,i)=>{
+        const spent=Math.max(2,Math.round(t.hours*(0.28+(i%3)*0.08)));
+        return {
+          id:'live-'+t.id,baseId:t.baseId,title:t.title,hoursSpent:spent,hoursLeft:Math.max(1,t.hours-spent),
+          cost:[2,4,1][i%3],source:reasons[t.baseId]||'Работа начата до Scrum Planning'
+        };
+      }),
+      done:[]
+    };
+    state.kanbanUrgent=false;
+  }
+
+  function column(key,title,limit){
+    const col=document.createElement('div');col.className='column';const arr=state.kanban[key]||[];const over=limit&&arr.length>limit;
+    col.innerHTML=`<div class="column-head"><div class="column-title">${title}</div><div class="wip ${over?'over':''}">${arr.length}${limit?'/'+limit:''}</div></div>`;
+    const zone=document.createElement('div');zone.className='dropzone';
+    arr.forEach(item=>{
+      const card=document.createElement('div');card.className='task-card';card.draggable=true;
+      card.innerHTML=`<div class="title">${item.title}</div><div class="task-meta"><span class="tag red">вложено ${item.hoursSpent} ч</span><span class="tag dark">осталось ${item.hoursLeft} ч</span><span class="tag red">переключение ${item.cost} ч</span></div><div class="small muted" style="margin-top:7px">${item.source}</div>`;
+      const btns=document.createElement('div');btns.className='btnrow';btns.style.marginTop='8px';
+      [['todo','← Надо сделать'],['doing','→ В работу'],['done','✓ Готово'],['backlog','↩ Бэклог']].filter(x=>x[0]!==key).forEach(([to,lab])=>{const b=document.createElement('button');b.className='btn secondary';b.style.minHeight='34px';b.disabled=state.sessionStatus!=='active';b.style.padding='6px 8px';b.style.fontSize='11px';b.textContent=lab;b.onclick=()=>move(item.id,key,to);btns.appendChild(b)});card.appendChild(btns);
+      card.addEventListener('dragstart',e=>{if(!sessionWritable()){e.preventDefault();return}activeKanbanDrag={id:item.id,from:key};if(e.dataTransfer){const payload=JSON.stringify(activeKanbanDrag);e.dataTransfer.setData('text/plain',payload);e.dataTransfer.effectAllowed='move'}card.classList.add('dragging')});card.addEventListener('dragend',()=>{activeKanbanDrag=null;card.classList.remove('dragging')});zone.appendChild(card);
+    });
+    col.appendChild(zone);const allowDrop=e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';col.classList.add('drop-active')};const handleDrop=e=>{e.preventDefault();e.stopPropagation();col.classList.remove('drop-active');let d=activeKanbanDrag;if(!d){try{d=JSON.parse(e.dataTransfer?.getData('text/plain')||'{}')}catch(_){d=null}}activeKanbanDrag=null;if(d?.id!==undefined&&d?.from)move(d.id,d.from,key)};col.addEventListener('dragover',allowDrop);zone.addEventListener('dragover',allowDrop);col.addEventListener('dragleave',()=>col.classList.remove('drop-active'));zone.addEventListener('dragleave',()=>col.classList.remove('drop-active'));col.addEventListener('drop',handleDrop);zone.addEventListener('drop',handleDrop);
+    return col;
+  }
+  function move(id,from,to){
+    if(!sessionWritable())return;
+    if(to==='doing'&&from!=='doing'&&state.kanban.doing.length>=2){$('kanbanAlert').innerHTML='<div class="alert"><b>WIP «В работе» = 2.</b> Сначала освободите место.</div>';return}
+    if(to==='todo'&&from!=='todo'&&state.kanban.todo.length>=3){$('kanbanAlert').innerHTML='<div class="alert"><b>WIP «Надо сделать» = 3.</b> Сначала освободите место.</div>';return}
+    const x=state.kanban[from].find(v=>String(v.id)===String(id));if(!x)return;state.kanban[from]=state.kanban[from].filter(v=>String(v.id)!==String(id));state.kanban[to].push(x);kanbanRevision++;kanbanLocalDirty=true;renderKanban();saveKanbanShared();
+  }
+  function renderKanban(){
+    if($('newUrgentBtn'))$('newUrgentBtn').disabled=state.sessionStatus!=='active';
+    $('kanbanBoard').innerHTML='';[['backlog','Бэклог',null],['todo','Надо сделать',3],['doing','В работе',2],['done','Готово',null]].forEach(d=>$('kanbanBoard').appendChild(column(...d)));
+    $('wipCurrent').textContent=state.kanban.doing.length;$('todoCurrent').textContent=state.kanban.todo.length;
+    $('spentHours').textContent=state.kanban.doing.reduce((s,x)=>s+x.hoursSpent,0)+' ч';
+    $('kanbanAlert').innerHTML=state.kanban.doing.length>2?'<div class="alert"><b>WIP превышен.</b> Нужно остановить часть работы.</div>':'<div class="success"><b>WIP в норме.</b> В работе '+state.kanban.doing.length+' из 2.</div>';
+  }
+  function newUrgent(){
+    if(!sessionWritable()||state.kanbanUrgent)return;state.kanbanUrgent=true;kanbanRevision++;kanbanLocalDirty=true;
+    state.kanban.backlog.push({id:'urgent',title:'Срочно обеспечить аварийную заявку на ТМЦ',hoursSpent:0,hoursLeft:6,cost:.5,source:'Дедлайн: 6 часов'});
+    renderKanban();saveKanbanShared();$('kanbanAlert').innerHTML='<div class="warn"><b>Новая вводная:</b> срочную заявку нужно закрыть за 6 часов. WIP нельзя просто увеличить.</div>';
+  }
+  function updateDebrief(){
+    const total=state.scrumPlan.selectedIds.reduce((s,id)=>s+(tasks().find(t=>t.id===id)?.hours||0),0);$('finalScrumHours').textContent=total+' ч';
+    const chosenTasks=(state.scrumPlan.selectedIds||[]).map(id=>tasks().find(t=>String(t.id)===String(id))).filter(Boolean);const scrumList=$('finalScrumTasks');scrumList.innerHTML='';if(!chosenTasks.length){scrumList.textContent='Команда не выбрала задачи на Scrum.'}else{chosenTasks.forEach(task=>{const li=document.createElement('li');li.textContent=task.name+' — '+task.hours+' ч';scrumList.appendChild(li)})}
+    const board=$('finalKanbanTasks');board.innerHTML='';[['backlog','Бэклог'],['todo','Надо сделать'],['doing','В работе'],['done','Готово']].forEach(([key,label])=>{const section=document.createElement('div');section.style.marginBottom='10px';const title=document.createElement('b');const items=state.kanban[key]||[];title.textContent=label+' ('+items.length+')';section.appendChild(title);if(!items.length){const empty=document.createElement('div');empty.className='muted';empty.textContent='Нет задач';section.appendChild(empty)}else{const ul=document.createElement('ul');items.forEach(item=>{const li=document.createElement('li');li.textContent=item.title+' — вложено '+(item.hoursSpent||0)+' ч, осталось '+(item.hoursLeft||0)+' ч';ul.appendChild(li)});section.appendChild(ul)}board.appendChild(section)});$('finalWip').textContent=`${state.kanban.doing.length} / 2`;$('finalCompletion').textContent=state.kanban.done.length?state.kanban.done.length+' задач':'ещё не измерено';$('finalTeamMeta').textContent=`Сессия ${state.sessionCode} · команда ${state.teamNumber}`;
+  }
+
+  async function restoreParticipantSession(){
+    const raw=persistentGet('sk:lastParticipant');
+    if(!raw)return;
+    try{
+      const last=JSON.parse(raw);
+      if(!last?.code||!Number.isInteger(Number(last.team)))return;
+      $('participantSession').value=last.code;
+      $('participantTeam').value=String(last.team);
+      await loadParticipant({codeOverride:last.code,teamOverride:Number(last.team),restore:true});
+    }catch(e){
+      if($('participantFeedback'))$('participantFeedback').innerHTML='<div class="alert"><b>Не удалось восстановить последнюю сессию.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+
+  // COACH
+  async function coachEnter(){
+    const p=$('coachPassword').value;
+    if(!p){$('coachFeedback').innerHTML='<div class="alert">Введите пароль.</div>';return}
+    stopAllParticipantLoops();
+    sessionSet('sk:mode','coach');
+    state.sessionCode=null;state.teamNumber=null;state.sessionName=null;state.sessionStatus='active';state.sessionEndedAt=null;
+    setPills();setSessionStatusBanner();
+    state.coachPassword=p;showScreen('coach');await loadSessions();
+  }
+  async function coachFetch(body){
+    const res=await api('/api/coach',{method:'POST',body:JSON.stringify({password:state.coachPassword,...body})});
+    const data=await apiJson(res);if(!res.ok||!data.ok)throw new Error(data.error||'coach error');return data;
+  }
+  async function loadSessions(){
+    $('sessionsList').innerHTML='<div class="info">Загружаем…</div>';
+    try{
+      const data=await coachFetch({action:'listSessions'});
+      renderSessions(data.sessions);
+    }catch(e){
+      $('sessionsList').innerHTML='<div class="alert"><b>Не удалось загрузить сессии.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+  function renderSessions(sessions){
+    if(!sessions.length){$('sessionsList').innerHTML='<div class="muted">Пока нет созданных сессий.</div>';return}
+    const wrap=document.createElement('div');wrap.className='grid';
+    sessions.forEach(s=>{
+      const row=document.createElement('div');row.className='session-row';
+      const active=s.status!=='ended';
+      const statusText=active?'Активна':'Завершена';
+      row.innerHTML=`<div><b>${s.name}</b><div class="small muted">${s.code} · ${new Date(s.createdAt).toLocaleString('ru-RU')}</div></div><div><span class="status-dot ${active?'active':'done'}"></span>${statusText}</div><div>${s.teams} команд</div><div>${s.completedTeams}/${s.teams} команд завершили · планирование по 5 ролям/ресурсам</div><div class="btnrow">${active?'<button class="btn secondary js-end" style="min-height:38px;padding:8px 10px">Закончить</button>':''}<button class="btn secondary js-open" style="min-height:38px;padding:8px 10px">Открыть</button><button class="btn secondary js-delete" style="min-height:38px;padding:8px 10px;border-color:#C33843;color:#C33843">Удалить</button></div>`;
+      row.querySelector('.js-open').onclick=()=>openSessionDetail(s.code);
+      row.querySelector('.js-delete').onclick=()=>deleteCoachSession(s.code,s.name);
+      row.querySelector('.js-end')?.addEventListener('click',()=>endCoachSession(s.code,s.name));
+      wrap.appendChild(row);
+    });
+    $('sessionsList').innerHTML='';$('sessionsList').appendChild(wrap);
+  }
+  async function endCoachSession(code,name){
+    if(!confirm(`Закончить сессию «${name}» (${code})? После этого участники смогут только просматривать текущее состояние.`))return;
+    try{await coachFetch({action:'endSession',code});await loadSessions();if(coachSelectedCode===code)await openSessionDetail(code);}
+    catch(e){$('coachFeedback').innerHTML='<div class="alert">Не удалось закончить сессию.<br>'+String(e.message||e)+'</div>';}
+  }
+  async function deleteCoachSession(code,name){
+    if(!confirm(`Удалить сессию «${name}» (${code}) целиком? Все данные этой сессии будут удалены без возможности восстановления.`))return;
+    try{await coachFetch({action:'deleteSession',code});if(coachSelectedCode===code){coachSelectedCode=null;$('coachSessionDetailCard').classList.add('hidden');}await loadSessions();}
+    catch(e){$('coachFeedback').innerHTML='<div class="alert">Не удалось удалить сессию.<br>'+String(e.message||e)+'</div>';}
+  }
+  async function createSession(){
+    const name=String($('newSessionName').value||'Новая сессия').trim();const teams=Number($('newSessionTeams').value);
+    try{
+      const data=await coachFetch({action:'createSession',name,teams});
+      $('createSessionFeedback').innerHTML=`<div class="success"><b>Сессия создана.</b><br>Код: <span class="kbd">${data.session.code}</span><br>Участникам отправьте ссылку на сайт + этот код.</div>`;
+      await loadSessions();await openSessionDetail(data.session.code);
+    }catch(e){
+      $('createSessionFeedback').innerHTML='<div class="alert"><b>Не удалось создать сессию.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+  async function openSessionDetail(code){
+    coachSelectedCode=code;$('coachSessionDetailCard').classList.remove('hidden');$('coachDetailTitle').textContent='Сессия '+code;
+    try{const data=await coachFetch({action:'getSession',code});$('coachDetailMeta').textContent=`${data.session.name} · ${new Date(data.session.createdAt).toLocaleString('ru-RU')} · ${data.session.status==='ended'?'завершена':'активна'}`;renderCoachDetail(data);$('endSessionDetailBtn').style.display=data.session.status==='ended'?'none':'inline-flex';}catch(e){$('coachDetailTeams').innerHTML='<div class="alert">Не удалось загрузить сессию.</div>'}
+  }
+  function renderCoachDetail(data){
+    const wrap=document.createElement('div');wrap.className='grid grid-2';
+    data.teams.forEach(t=>{
+      const card=document.createElement('div');card.className='card';
+      const st=t.state||{};const wip=st.kanban?.doing?.length??0;const done=st.kanban?.done?.length??0;
+      const phase=st.phase||'ex1';const selected=t.shared?.scrumPlan?.selectedIds||st.sprintSelected||[];const total=selected.reduce((sum,id)=>{const base=BASE_TASKS.find(x=>String(x.id)===String(id).replace('base-',''));const tweak=(VARIANTS[t.variantIndex]?.taskTweaks||{})[base?.id]||0;return sum+(base?.hours||0)+tweak;},0);
+      const ex1count=Number(t.exercise1?.count||0);
+      
+      card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><h3>Команда ${t.teamNumber}</h3><div class="small muted">Вариант ${String.fromCharCode(65+t.variantIndex)}</div></div><span class="chip">${phase}</span></div>
+        <div class="metric"><span>Ресурсы планирования</span><strong>5 ролей</strong></div>
+        <div class="metric"><span>Упражнение 1</span><strong>${ex1count} задач</strong></div>
+        <div class="metric"><span>Sprint Backlog</span><strong>${total} ч</strong></div>
+        <div class="metric"><span>WIP</span><strong>${wip}/2</strong></div>
+        <div class="metric"><span>Готово</span><strong>${done}</strong></div>
+        <div class="metric"><span>Срочная задача</span><strong>${st.kanbanUrgent?'да':'нет'}</strong></div>`;
+      wrap.appendChild(card)
+    });$('coachDetailTeams').innerHTML='';$('coachDetailTeams').appendChild(wrap);
+  }
+
+  async function runHealthCheck(){
+    if(!state.coachPassword){$('coachHealthFeedback').innerHTML='<div class="alert">Сначала войдите в кабинет ведущего.</div>';return}
+    $('coachHealthFeedback').innerHTML='<div class="info">Проверяем подключение базы данных…</div>';
+    try{
+      const data=await coachFetch({action:'health'});
+      $('coachHealthFeedback').innerHTML='<div class="success"><b>Всё подключено.</b><br>'+data.message+'</div>';
+    }catch(e){
+      $('coachHealthFeedback').innerHTML='<div class="alert"><b>Проверка не пройдена.</b><br>'+String(e.message||e)+'</div>';
+    }
+  }
+
+  // listeners
+  $('participantEnterBtn').onclick=()=>loadParticipant();
+  $('coachEnterBtn').onclick=coachEnter;
+  $('coachHomeBtn').onclick=()=>{showScreen('home');sessionSet('sk:mode','home');};
+  $('healthCheckBtn').onclick=runHealthCheck;
+  $('createSessionBtn').onclick=createSession;
+  $('refreshSessionsBtn').onclick=loadSessions;
+  $('refreshDetailBtn').onclick=()=>coachSelectedCode&&openSessionDetail(coachSelectedCode);
+  $('copySessionCodeBtn').onclick=async()=>{if(coachSelectedCode){await navigator.clipboard?.writeText(coachSelectedCode);$('copySessionCodeBtn').textContent='Скопировано'}};
+  $('endSessionDetailBtn').onclick=()=>coachSelectedCode&&endCoachSession(coachSelectedCode,'эту сессию');
+  $('deleteSessionDetailBtn').onclick=()=>coachSelectedCode&&deleteCoachSession(coachSelectedCode,'эту сессию');
+  $('clearSprintBtn').onclick=()=>{if(!sessionWritable()||state.scrumPlan.locked)return;state.scrumPlan.selectedIds=[];state.scrumPlan.allocations={};state.sprintSelected=[];renderScrum();saveScrumPlan()};
+  $('lockSprintBtn').onclick=lockSprint;
+  $('newUrgentBtn').onclick=newUrgent;
+  $('lockExercise1Btn').onclick=lockExercise1;
+  $('goScrumBtn').onclick=()=>{state.phase='scrum';renderScrum();showScreen('scrum');saveState()};
+  $('goDebriefBtn').onclick=()=>{state.phase='debrief';updateDebrief();saveState();showScreen('debrief')};
+
+  // Restore the last participant session after refresh. Manual entry of the same code remains unlimited.
+  setPills();saveStatus('● готово');
+  if(sessionGet('sk:mode')!=='coach')restoreParticipantSession();
+})();
+</script>
+</body>
+</html>
